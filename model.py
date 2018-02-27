@@ -51,7 +51,9 @@ class Model:
 
         # sampling a random class from softmax
         probs = tf.nn.softmax(self.y)
-        class_ind = tf.to_int32(tf.multinomial(tf.log(probs), 1)[0][0])
+        rand_val=tf.stop_gradient(tf.multinomial(tf.log(probs), 1)) #lizx add stop gradient
+        class_ind = tf.to_int32(rand_val[0][0]) #lizx: stop gradient?
+        print(rand_val.shape.as_list())
 
         if(plot_diffs):
             # track differences in mean Fisher info
@@ -62,7 +64,7 @@ class Model:
             # select random input image
             im_ind = np.random.randint(imgset.shape[0])
             # compute first-order derivatives
-            ders = sess.run(tf.gradients(tf.log(probs[0,class_ind]), self.var_list), feed_dict={self.x: imgset[im_ind:im_ind+1]})
+            ders = sess.run(tf.gradients(tf.log(probs[0,class_ind]), self.var_list), feed_dict={self.x: imgset[im_ind:im_ind+1]}) #lizx: why sampling here?
             # square the derivatives and add to total
             for v in range(len(self.F_accum)):
                 self.F_accum[v] += np.square(ders[v])
@@ -110,7 +112,7 @@ class Model:
             self.ewc_loss = self.cross_entropy
 
         for v in range(len(self.var_list)):
-            self.ewc_loss += (lam/2) * tf.reduce_sum(tf.multiply(self.F_accum[v].astype(np.float32),tf.square(self.var_list[v] - self.star_vars[v])))
+            self.ewc_loss += (lam/2) * tf.reduce_sum(tf.multiply(self.F_accum[v].astype(np.float32),tf.square(self.var_list[v] - self.star_vars[v]))) #lizx: will tensorflow calculate gradient through random numbers?
         self.train_step = tf.train.GradientDescentOptimizer(0.1).minimize(self.ewc_loss)
 
 
